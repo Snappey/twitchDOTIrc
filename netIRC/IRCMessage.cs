@@ -23,6 +23,7 @@ namespace twitchDotIRC
         <crlf>     ::= CR LF 
          */
         
+        // TODO: Cleanup variables
         public string Prefix { get; private set; }
         public string Server { get; private set; }
         public string Nick { get; private set; }
@@ -33,8 +34,8 @@ namespace twitchDotIRC
         public bool IsNumericReply { get; private set; }
         public IRCReply IRCReply { get; private set; }
 
-        public string Params { get; private set; }
-        public List<string> ParamsList { get; private set; }
+        public string RawParameters { get; private set; }
+        public string[] Parameters { get; private set; }
 
         public string Raw { get; private set; }
         private string RawTrimmed { get; set; }
@@ -122,25 +123,25 @@ namespace twitchDotIRC
                     }
                 }
                 #endregion
-                // Params Section
-                #region Params Parsing
+                // RawParameters Section
+                #region RawParameters Parsing
                 {
                     // <params>   ::= <SPACE> [ ':' <trailing> | <middle> <params> ]
                     if (subIdx == 0)
                     {
                         // No prefix detected,
                         subIdx = RawTrimmed.IndexOf(' ');
-                        Params = RawTrimmed.Substring(subIdx + 1);
+                        RawParameters = RawTrimmed.Substring(subIdx + 1);
                     }
                     else
                     {
                         // We detected a prefix, so there is already a SPACE, find the next one
                         subIdx = RawTrimmed.IndexOf(' ', subIdx + 1);
-                        Params = RawTrimmed.Substring(subIdx + 1);
+                        RawParameters = RawTrimmed.Substring(subIdx + 1);
                     }
 
-                    ParamsList = new List<string>();
-                    var paramsChar = Params.ToCharArray();
+                    var paramsList = new List<string>();
+                    var paramsChar = RawParameters.ToCharArray();
 
                     for(int i=0; i < paramsChar.Length; i++)
                     {
@@ -148,26 +149,25 @@ namespace twitchDotIRC
 
                         if (ch == ':')  //[':' < trailing > | ... ]
                         {
-                            ParamsList.Add(new string(paramsChar.Skip(i).Take(paramsChar.Length - i).ToArray()));
+                            paramsList.Add(new string(paramsChar.Skip(i).Take(paramsChar.Length - i).ToArray()));
                             break; // Last parameter
                         }
                         else // [ ... | < middle > <params> ]
                         {
-                            var nextSpace = Params.IndexOf(' ', i);
+                            var nextSpace = RawParameters.IndexOf(' ', i);
                             if (nextSpace == -1)
                             {
-                                ParamsList.Add(new string(paramsChar.ToArray()));
+                                paramsList.Add(new string(paramsChar.ToArray()));
                                 break; // There are no more parameters twitch lied to us (where was the ':' :( )
                             }
                             else
                             {
-                                ParamsList.Add(new string(paramsChar.Skip(i).Take(nextSpace - i).ToArray()));
+                                paramsList.Add(new string(paramsChar.Skip(i).Take(nextSpace - i).ToArray()));
                                 i = nextSpace;
                             }
                         }
                     }
-                    
-
+                    Parameters = paramsList.ToArray();
                 }
                 #endregion
             }
@@ -180,8 +180,8 @@ namespace twitchDotIRC
                 User = string.Empty;
                 Host = string.Empty;
                 Command = string.Empty;
-                Params = string.Empty;
-                ParamsList = new List<string>();
+                RawParameters = string.Empty;
+                Parameters = new string[0];
             }
 
             #endregion
