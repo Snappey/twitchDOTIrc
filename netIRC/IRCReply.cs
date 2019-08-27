@@ -4,7 +4,7 @@ using System.Text;
 
 namespace twitchDotIRC
 {
-    enum IRCReply
+    public enum IRCReply
     {
         NON_NUMERIC = 0, // Custom defined
 

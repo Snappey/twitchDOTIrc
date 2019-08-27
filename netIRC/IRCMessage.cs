@@ -2,10 +2,11 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Linq;
+using System.Threading;
 
 namespace twitchDotIRC
 {
-    class IRCMessage
+    public class IRCMessage
     {
 
         /*   
@@ -40,10 +41,13 @@ namespace twitchDotIRC
         public string Raw { get; private set; }
         private string RawTrimmed { get; set; }
 
+        public DateTime Time;
+
         public IRCMessage(byte[] msg)
         {
-            Raw = Encoding.ASCII.GetString(msg);
-            RawTrimmed = Encoding.ASCII.GetString(msg).Trim();
+            Time = DateTime.UtcNow;
+            Raw = Encoding.UTF8.GetString(msg);
+            RawTrimmed = Encoding.UTF8.GetString(msg).Trim();
 
             #region Actual Parsing
             if (RawTrimmed.Length > 0)
@@ -106,7 +110,14 @@ namespace twitchDotIRC
                 #region Command Parsing 
                 {
                     // < command >  ::= < letter > { < letter > } | < number > < number > < number >
-                    Command = RawTrimmed.Substring(subIdx + 1);
+                    if (subIdx != 0)
+                    {
+                        Command = RawTrimmed.Substring(subIdx + 1);
+                    }
+                    else
+                    {
+                        Command = RawTrimmed.Substring(subIdx);
+                    }            
                     Command = Command.Substring(0, Command.IndexOf(' ')); // <command> <params> (<params> starts with <SPACE>)
                     IsNumericReply = false;
 
@@ -192,7 +203,7 @@ namespace twitchDotIRC
             return Raw;
         }
 
-        public static List<IRCMessage> Factory(byte[] msg)
+        public static List<IRCMessage> Factory(byte[] msg) // TODO: Bug, single char of a messageis being chopped off
         {
             List<IRCMessage> messages = new List<IRCMessage>();
 
@@ -203,7 +214,7 @@ namespace twitchDotIRC
                 {
                     List<byte> tmp = new List<byte>();
                     
-                    for (int k=i; k > lastFind; k--)
+                    for (int k=i; k >= lastFind; k--)
                     {
                         tmp.Add(msg[k]);                     
                     }

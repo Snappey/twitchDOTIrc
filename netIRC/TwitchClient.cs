@@ -4,8 +4,11 @@ using System.Data;
 using System.IO;
 using System.Linq;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading;
 using twitchDotIRC.Builders;
+using twitchDotIRC.Structures;
+
 
 namespace twitchDotIRC
 {
@@ -16,12 +19,23 @@ namespace twitchDotIRC
         private StreamWriter writer;
 
         private Thread readThread;
+        private Queue<string> sendQueue = new Queue<string>();
 
         #region ReadOnly Variables
         public readonly string IP;
         public readonly int Port;
         public readonly string Nick;
         public readonly string OAuth;
+        #endregion
+
+        #region Events
+
+        public delegate void OnRawMessageHandler(IRCMessage message);
+        public delegate void OnChatMessageHandler(ChatMessage message);
+
+        public event OnRawMessageHandler OnRawMessage;
+        public event OnChatMessageHandler OnChatMessage;
+
         #endregion
 
         public TwitchClient(string nick, string oauth, bool ssl=false)
@@ -58,30 +72,12 @@ namespace twitchDotIRC
             {
                 Console.WriteLine("Failed to Connect");
             }
-
+  
             readThread = new Thread(new ThreadStart(ReadLoop));
             readThread.IsBackground = true;
             readThread.Start();
 
-            Regestration();
-
-            //SendRawMessage("TESTING ERROR");
-            //JoinChannel("CohhCarnage");
-            //JoinChannel("Sodapoppin", "Testing123");
-            //JoinChannel(new List<string>{"Cohh", "Soda", "Valkia"});
-            //JoinChannel(new List<string>{"Cohh", "Soda", "Valkia"}, new List<string>{"123", "456", "789"});
-
-            LeaveChannel("CohhCarnage");
-            LeaveChannel(new List<string>{"CohhCarnage", "#Soda"});
-            LeaveChannel("#Soda");
-
-            SetTopic("Cohh", "Tersting 123123123");
-            SetTopic("#Soda");
-            SetTopic("#Cohh", ":Testint 123123");
-
-            SendPrivateMessage("Cohh", "Testing 123123123123123");
-            SendPrivateMessage("#Soda", ":12312313");
-            SendPrivateMessage("Testing123", "soda");
+            Registration();
         }
 
         private void ReadLoop()
@@ -98,9 +94,36 @@ namespace twitchDotIRC
                     foreach(IRCMessage message in messages)
                     {
                         //Console.WriteLine("> " + message.RawTrimmed);
-                        Console.WriteLine($"{message.User}: {message.RawParameters}");
+                        //Console.WriteLine($"{message.User}: {message.RawParameters}");
+                        MessageHandler(message);
+                        OnRawMessage?.Invoke(message);
                     }
                 }
+
+                if (sendQueue.TryDequeue(out var msg))
+                {
+                    writer.WriteLine(msg);
+                    writer.Flush();
+
+                    Console.WriteLine("< " + msg);
+                }  
+            }
+        }
+
+        private void MessageHandler(IRCMessage message)
+        {
+            //Console.WriteLine($"> {message.IRCReply}:  {message.RawParameters}");
+            switch (message.Command)
+            {
+                case "PING":
+                    SendRawMessage("PONG :tmi.twitch.tv"); // SO twitch doesnt mark as inactive and disconnect us
+                    break;
+                case "PRIVMSG":
+                    OnChatMessage?.Invoke(ChatMessage.Factory(message));
+                    break;
+                default:
+                    Console.WriteLine("> UNHANDLED REPLY COMMAND  " + message.Command);
+                    break;
             }
         }
 
@@ -199,9 +222,6 @@ namespace twitchDotIRC
 
             SendRawMessage(builder.Build());
         }
-
-
-
         #endregion
 
         #region Message Operations
@@ -216,7 +236,7 @@ namespace twitchDotIRC
         #endregion
 
         // TODO: Unprivate, check so we dont reauthenticate if already connected
-        private void Regestration()
+        private void Registration()
         {
             SendRawMessage("PASS " + OAuth);
             SendRawMessage("NICK " + Nick.ToLower());
@@ -225,10 +245,7 @@ namespace twitchDotIRC
         // TODO: Implement rate limiting for messages sent to server 
         private void SendRawMessage(string msg)
         {
-            writer.WriteLine(msg);
-            writer.Flush();
-
-            Console.WriteLine("< " + msg);
+            sendQueue.Enqueue(msg);   
         }
     }
 }

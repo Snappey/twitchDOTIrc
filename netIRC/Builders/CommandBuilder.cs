@@ -54,7 +54,7 @@ namespace twitchDotIRC.Builders
                             "Parameter count does not match '" + parameters.Length + "'");
                     }
 
-                    string channels = parameters[0];
+                    string channels = parameters[0].ToLower();
                     string passwords = string.Empty;
 
                     if (parameters.Length == 2)
@@ -514,7 +514,7 @@ namespace twitchDotIRC.Builders
                 output = $"{command} {string.Join(' ', parameters)}";
             }
 
-            return output;
+            return output.TrimEnd();
         }
 
 

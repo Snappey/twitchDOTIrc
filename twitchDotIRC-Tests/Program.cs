@@ -9,15 +9,34 @@ namespace twitchDotIRC_App
 
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
-
-            client = new TwitchClient("Snappey", "oauth:oqcfayxlg4wy8akt22m4t0e29fgcrq");
-
+            client = new TwitchClient("Snappey", "oauth:u5rvgwpbha2o5cs3kk89dnzi40m8sn");
             client.Start();
 
-            
+            client.JoinChannel("xqcow");
 
-            Console.ReadKey();
+            //client.OnRawMessage += message => { Console.WriteLine($"{message.Nick}: {message.RawParameters}"); };
+            client.OnChatMessage += message => { Console.WriteLine($"[{message.Time.ToLongTimeString()} ({String.Format("{0, 3:D3}", message.Time.Millisecond)}ms)] {message.User} in #{message.Channel}: {message.Message}"); };
+
+            //SendRawMessage("TESTING ERROR");
+            //JoinChannel("forsen");]
+            //JoinChannel("valkia");
+            //JoinChannel("Sodapoppin", "Testing123");
+            //JoinChannel(new List<string>{"Lirik", "forsen", "Valkia"});
+            //JoinChannel(new List<string>{"Cohh", "Soda", "Valkia"}, new List<string>{"123", "456", "789"});
+
+            //LeaveChannel("CohhCarnage");
+            //LeaveChannel(new List<string>{"CohhCarnage", "#Soda"});
+            //LeaveChannel("#Soda");
+
+            //SetTopic("Cohh", "Tersting 123123123");
+            //SetTopic("#Soda");
+            //SetTopic("#Cohh", ":Testint 123123");
+
+            //SendPrivateMessage("Cohh", "Testing 123123123123123");
+            //SendPrivateMessage("#Soda", ":12312313");
+            //SendPrivateMessage("Testing123", "soda");
+
+            Console.ReadLine();
         }
     }
 }
