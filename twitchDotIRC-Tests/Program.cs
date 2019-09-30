@@ -9,15 +9,14 @@ namespace twitchDotIRC_App
 
         static void Main(string[] args)
         {
-            client = new TwitchClient("Snappey", "oauth:u5rvgwpbha2o5cs3kk89dnzi40m8sn");
+            client = new TwitchClient("Snappey", args[0]);
             client.Start();
 
             client.JoinChannel("xqcow");
 
             //client.OnRawMessage += message => { Console.WriteLine($"{message.Nick}: {message.RawParameters}"); };
             client.OnChatMessage += message => { Console.WriteLine($"[{message.Time.ToLongTimeString()} ({String.Format("{0, 3:D3}", message.Time.Millisecond)}ms)] {message.User} in #{message.Channel}: {message.Message}"); };
-
-            //SendRawMessage("TESTING ERROR");
+            
             //JoinChannel("forsen");]
             //JoinChannel("valkia");
             //JoinChannel("Sodapoppin", "Testing123");

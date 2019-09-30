@@ -40,6 +40,7 @@ namespace twitchDotIRC
 
         public string Raw { get; private set; }
         private string RawTrimmed { get; set; }
+        public bool Parsed { get; set; }
 
         public DateTime Time;
 
@@ -48,6 +49,16 @@ namespace twitchDotIRC
             Time = DateTime.UtcNow;
             Raw = Encoding.UTF8.GetString(msg);
             RawTrimmed = Encoding.UTF8.GetString(msg).Trim();
+            Parsed = false;
+
+            Prefix = string.Empty;
+            Server = string.Empty;
+            Nick = string.Empty;
+            User = string.Empty;
+            Host = string.Empty;
+            Command = string.Empty;
+            RawParameters = string.Empty;
+            Parameters = new string[0];
 
             #region Actual Parsing
             if (RawTrimmed.Length > 0)
@@ -117,8 +128,14 @@ namespace twitchDotIRC
                     else
                     {
                         Command = RawTrimmed.Substring(subIdx);
-                    }            
-                    Command = Command.Substring(0, Command.IndexOf(' ')); // <command> <params> (<params> starts with <SPACE>)
+                    }
+
+                    var cmdIndex = Command.IndexOf(' ');
+                    if (cmdIndex == -1)
+                        return; // Invalid Message, cant be parsed.
+                                // TODO: Log it to see why
+
+                    Command = Command.Substring(0, cmdIndex); // <command> <params> (<params> starts with <SPACE>)
                     IsNumericReply = false;
 
                     char startChar = (char)Command.ToCharArray().GetValue(0);
@@ -181,6 +198,7 @@ namespace twitchDotIRC
                     Parameters = paramsList.ToArray();
                 }
                 #endregion
+                Parsed = true;
             }
             else
             {
@@ -203,7 +221,7 @@ namespace twitchDotIRC
             return Raw;
         }
 
-        public static List<IRCMessage> Factory(byte[] msg) // TODO: Bug, single char of a messageis being chopped off
+        public static List<IRCMessage> Factory(byte[] msg)
         {
             List<IRCMessage> messages = new List<IRCMessage>();
 
@@ -221,8 +239,13 @@ namespace twitchDotIRC
 
                     var arr = tmp.ToArray();
                     Array.Reverse(arr); // Reverse the array, because we iterate the array backwards when inserting
-                    messages.Add(new IRCMessage(arr));
 
+                    var message = new IRCMessage(arr);
+                    if (message.Parsed)
+                    {
+                        messages.Add(new IRCMessage(arr));
+                    }
+                    
                     lastFind = i; // Designates the end point for the next message iteration
                 }
             }
